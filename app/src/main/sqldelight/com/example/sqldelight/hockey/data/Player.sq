@@ -1,0 +1,205 @@
+CREATE TABLE IF NOT EXISTS small_audio_lemma (
+  audio_id integer  NOT NULL,
+  lemma_id integer  NOT NULL,
+  UNIQUE (audio_id, lemma_id)
+);
+
+CREATE TABLE IF NOT EXISTS audios (
+  id integer  NOT NULL PRIMARY KEY AUTOINCREMENT,
+  filename TEXT NOT NULL,
+  UNIQUE (`filename`)
+);
+
+CREATE TABLE IF NOT EXISTS `dialects` (
+  `id` integer  NOT NULL PRIMARY KEY AUTOINCREMENT
+,  `lang_id` integer  NOT NULL
+,  `name_en` TEXT NOT NULL
+,  `name_ru` TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS `gram_categories` (
+  `id` integer  NOT NULL PRIMARY KEY AUTOINCREMENT
+,  `name_en` TEXT NOT NULL
+,  `name_ru` TEXT NOT NULL
+,  `sequence_number` integer  DEFAULT NULL
+);
+
+CREATE TABLE IF NOT EXISTS `grams` (
+  `id` integer  NOT NULL PRIMARY KEY AUTOINCREMENT
+,  `gram_category_id` integer  NOT NULL
+,  `name_short_en` TEXT NOT NULL
+,  `name_en` TEXT NOT NULL
+,  `name_short_ru` TEXT NOT NULL
+,  `name_ru` TEXT NOT NULL
+,  `sequence_number` integer  NOT NULL
+,  `conll` TEXT DEFAULT NULL
+,  `unimorph` TEXT DEFAULT NULL
+);
+
+CREATE TABLE IF NOT EXISTS `gramset_categories` (
+  `id` integer  NOT NULL PRIMARY KEY AUTOINCREMENT
+,  `pos_category_id` integer  NOT NULL
+,  `name_en` TEXT NOT NULL
+,  `name_ru` TEXT NOT NULL
+,  `sequence_number` integer  DEFAULT NULL
+);
+
+CREATE TABLE IF NOT EXISTS `gramset_pos` (
+  `gramset_id` integer  DEFAULT NULL
+,  `pos_id` integer  NOT NULL
+,  `lang_id` integer  DEFAULT NULL
+,  UNIQUE (`gramset_id`,`pos_id`,`lang_id`)
+);
+
+CREATE TABLE IF NOT EXISTS `gramsets` (
+  `id` integer  NOT NULL PRIMARY KEY AUTOINCREMENT
+,  `pos_id_debug` integer  DEFAULT NULL
+,  `gram_id_number` integer  DEFAULT NULL
+,  `gram_id_case` integer  DEFAULT NULL
+,  `gram_id_tense` integer  DEFAULT NULL
+,  `gram_id_person` integer  DEFAULT NULL
+,  `gram_id_mood` integer  DEFAULT NULL
+,  `sequence_number` integer  DEFAULT '0'
+,  `gram_id_negation` integer  DEFAULT NULL
+,  `gram_id_infinitive` integer  DEFAULT NULL
+,  `gram_id_voice` integer  DEFAULT NULL
+,  `gram_id_participle` integer  DEFAULT NULL
+,  `gram_id_reflexive` integer  DEFAULT NULL
+,  `gramset_category_id` integer NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS `langs` (
+  `id` integer  NOT NULL PRIMARY KEY AUTOINCREMENT
+,  `name_en` TEXT NOT NULL
+,  `name_ru` TEXT NOT NULL
+,  `code` TEXT NOT NULL
+,  `sequence_number` integer  NOT NULL
+,  UNIQUE (`code`)
+);
+
+CREATE TABLE IF NOT EXISTS `lemma_wordform` (
+  `lemma_id` integer  NOT NULL
+,  `wordform_id` integer  NOT NULL
+,  `gramset_id` integer  DEFAULT NULL
+,  `dialect_id` integer  DEFAULT NULL
+,  `lang_id` integer  NOT NULL
+,  UNIQUE (`lemma_id`,`wordform_id`,`gramset_id`,`dialect_id`)
+);
+
+CREATE TABLE IF NOT EXISTS `lemmas` (
+  `id` integer  NOT NULL PRIMARY KEY AUTOINCREMENT
+,  `lemma` TEXT NOT NULL
+,  `lang_id` integer  NOT NULL
+,  `pos_id` integer  DEFAULT NULL
+,  `wordform_total` integer  DEFAULT NULL
+);
+
+CREATE TABLE IF NOT EXISTS `meaning_relation` (
+  `meaning1_id` integer  NOT NULL
+,  `relation_id` integer  NOT NULL
+,  `meaning2_id` integer  NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS `meaning_texts` (
+  `id` integer  NOT NULL PRIMARY KEY AUTOINCREMENT
+,  `meaning_id` integer  NOT NULL
+,  `lang_id` integer  NOT NULL
+,  `meaning_text` TEXT NOT NULL
+,  UNIQUE (`meaning_id`,`lang_id`)
+);
+
+CREATE TABLE IF NOT EXISTS `meanings` (
+  `id` integer  NOT NULL PRIMARY KEY AUTOINCREMENT
+,  `lemma_id` integer  NOT NULL
+,  `meaning_n` integer  NOT NULL
+,  UNIQUE (`lemma_id`,`meaning_n`)
+);
+
+CREATE TABLE IF NOT EXISTS `parts_of_speech` (
+  `id` integer  NOT NULL PRIMARY KEY AUTOINCREMENT
+,  `name_en` TEXT NOT NULL
+,  `name_ru` TEXT NOT NULL
+,  `code` TEXT NOT NULL
+,  `category` integer NOT NULL DEFAULT '3'
+,  `name_short_ru` TEXT DEFAULT NULL
+,  `without_gram` integer  DEFAULT NULL
+,  UNIQUE (`code`)
+);
+
+CREATE TABLE IF NOT EXISTS `wordforms` (
+  `id` integer  NOT NULL PRIMARY KEY AUTOINCREMENT
+,  `wordform` TEXT NOT NULL
+);
+
+
+CREATE INDEX IF NOT EXISTS idx_wordforms_wordforms_wordform_index ON wordforms(wordform);
+
+selectWordforms:
+SELECT id
+FROM wordforms
+WHERE wordform LIKE ?;
+
+selectLemmaId:
+SELECT DISTINCT(lemma_id)
+FROM lemma_wordform
+WHERE wordform_id = ?
+AND lang_id IN ?;
+
+selectLemmaText:
+SELECT lemma
+FROM lemmas
+WHERE id = ?;
+
+selectFormsId:
+SELECT wordform_id, gramset_id
+FROM lemma_wordform WHERE
+lemma_id = ? AND lang_id = ?
+AND gramset_id IS NOT NULL;
+
+selectRusMeaning:
+SELECT meaning_id
+FROM meaning_texts WHERE
+meaning_text LIKE ('% ' || :meaning || '%')
+OR meaning_text LIKE (:meaning || '%')
+AND lang_id = 2;
+
+selectLemmaMeaning:
+SELECT DISTINCT(lemma_id)
+FROM meanings
+WHERE id IN ?;
+
+selectMeaningId:
+SELECT meanings.lemma_id, lemmas.lemma, group_concat(meaning_texts.meaning_text, '; ') AS meanings_texts
+FROM meanings
+JOIN meaning_texts ON meaning_texts.meaning_id = meanings.id
+JOIN lemmas ON lemmas.id = meanings.lemma_id
+WHERE lemma_id IN ?
+AND meaning_texts.lang_id = 2
+GROUP BY meanings.lemma_id
+ORDER BY meanings.lemma_id;
+
+selectTest:
+SELECT lemma_wordform.lemma_id,
+langs.name_ru,
+wordforms.wordform,
+gramsets.id,
+gramsets.gram_id_number,
+gramsets.gram_id_case,
+gramsets.gram_id_tense,
+gramsets.gram_id_mood,
+gramsets.gram_id_person,
+grams.name_ru,
+tense.name_ru AS tense_name,
+person.name_ru AS person_name,
+mood.name_ru AS mood_name
+FROM lemma_wordform
+JOIN wordforms ON wordforms.id = lemma_wordform.wordform_id
+LEFT JOIN gramsets ON gramsets.id = lemma_wordform.gramset_id
+LEFT JOIN grams ON grams.id = gramsets.gram_id_case
+LEFT JOIN langs ON langs.id = lemma_wordform.lang_id
+LEFT JOIN grams AS tense ON tense.id = gramsets.gram_id_tense
+LEFT JOIN grams AS person ON person.id = gramsets.gram_id_person
+LEFT JOIN grams AS mood ON mood.id = gramsets.gram_id_mood
+WHERE lemma_id IN ?
+AND gramset_id IS NOT NULL
+ORDER BY lemma_wordform.lemma_id;
