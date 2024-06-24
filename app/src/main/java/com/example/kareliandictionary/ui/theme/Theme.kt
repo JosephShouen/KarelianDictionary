@@ -18,15 +18,25 @@ import androidx.core.view.WindowCompat
 import com.google.accompanist.systemuicontroller.rememberSystemUiController
 
 private val DarkColorScheme = darkColorScheme(
-    primary = Purple80,
-    secondary = PurpleGrey80,
-    tertiary = Pink80
+    primary = Orange,
+    secondary = Orange,
+    tertiary = Orange,
+
+    background = Color(0xFF212121),
+    surface = Color(0xFF212121),
+//    onPrimary = Color(0xFF212121),
+//    onSecondary = Color(0xFF212121),
+//    onTertiary = Color(0xFF212121),
+//    onBackground = Color(0xFF212121),
+//    onSurface = Color(0xFF212121),
 )
 
 private val LightColorScheme = lightColorScheme(
-    primary = Purple40,
-    secondary = PurpleGrey40,
-    tertiary = Pink40
+    primary = Orange,
+    secondary = Orange,
+    tertiary = Orange,
+
+    background = Color(0xFFf4f4f4),
 
     /* Other default colors to override
     background = Color(0xFFFFFBFE),
@@ -60,10 +70,21 @@ fun KarelianDictionaryTheme(
         SideEffect {
             val window = (view.context as Activity).window
             //window.statusBarColor = colorScheme.primary.toArgb()
-            window.statusBarColor = Color(0xFFf4f4f4).toArgb()
+            window.statusBarColor = if(!darkTheme) MyWhiteB4.toArgb() else Color(0xFF686868).toArgb()
             WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = darkTheme
         }
     }
+
+//    val systemUiController = rememberSystemUiController()
+//    if(darkTheme){
+//        systemUiController.setSystemBarsColor(
+//            color = Color.Transparent
+//        )
+//    }else{
+//        systemUiController.setSystemBarsColor(
+//            color = Color.White
+//        )
+//    }
 
     MaterialTheme(
         colorScheme = colorScheme,

@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.SharedPreferences
 import android.util.Log
 import androidx.compose.foundation.background
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -37,10 +38,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -50,6 +53,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import app.cash.sqldelight.db.SqlDriver
 import app.cash.sqldelight.driver.android.AndroidSqliteDriver
 import com.example.Database
@@ -61,20 +65,23 @@ fun SearchScreen(prefs: SharedPreferences) {
     val context: Context = LocalContext.current
 
     var arrDrop by remember { mutableStateOf(false) }
-    val listLemmas = remember{mutableStateListOf<LemmaInfo>()}
+    val listLemmas = remember { mutableStateListOf<LemmaInfo>() }
     Log.d("TestLaunch", "Before Driver")
-    var driver: SqlDriver = remember {AndroidSqliteDriver(Database.Schema, context, "tiny_big_vepkar.db")}
+    val driver: SqlDriver = remember {AndroidSqliteDriver(Database.Schema, context, "tiny_big_vepkar.db")}
     Log.d("TestLaunch", "After Driver")
-    var chosenlang: List<Long> = remember { mutableListOf(1, 4, 5, 6, 7) }
+    val chosenLang: List<Long> = remember { mutableListOf(1, 4, 5, 6, 7) }
     val keyboardController = LocalSoftwareKeyboardController.current
-    var input_value by remember { mutableStateOf("") }
+    var inputValue by remember { mutableStateOf("") }
 
     var threadChecker by remember { mutableStateOf(false) }
     val searchThread = Thread {
         threadChecker = true
-        getLemmaInfo(driver, input_value, chosenlang, listLemmas)
+        getLemmaInfo(driver, inputValue, chosenLang, listLemmas)
         threadChecker = false
     }
+
+    val focusRequester = remember { FocusRequester() }
+    val focusManager = LocalFocusManager.current
 
 //    val firstStart = prefs.getBoolean("firstStart", true)
 //    if (firstStart) {
@@ -99,15 +106,10 @@ fun SearchScreen(prefs: SharedPreferences) {
 
     val (height, width) = LocalConfiguration.current.run { screenHeightDp.dp to screenWidthDp.dp }
 
-    Box(modifier = Modifier.background(
-        color = Color(0xFFf4f4f4)
-//            brush = Brush.verticalGradient(
-//                colors = listOf(
-//                    Color(0xFFFFFFFF),
-//                    Color(0xFFf4f4f4)
-//                )
-//            )
-            ))
+//    Box(modifier = Modifier.background(
+//        color = Color(0xFFf4f4f4)
+//    ))
+    Box()
     {
         Row(modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.End) {
@@ -121,6 +123,8 @@ fun SearchScreen(prefs: SharedPreferences) {
                     "",
                     modifier = Modifier.size(48.dp).padding(top = 10.dp),
                     tint = Color(0xFF848484)
+//                    tint = Color(0xFF263238)
+//                    tint = Color.DarkGray
                 )
             }
         }
@@ -135,11 +139,11 @@ fun SearchScreen(prefs: SharedPreferences) {
         ) {
             OutlinedTextField(
 //                value = input_value.uppercase(),
-                value = input_value,
+                value = inputValue,
                 onValueChange = {
                     //newText ->
                     //input_value = newText
-                    input_value = it
+                    inputValue = it
                 },
                 placeholder = {
                     Row(
@@ -148,15 +152,17 @@ fun SearchScreen(prefs: SharedPreferences) {
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = " Minä ečin...",
-//                            text = "... ?",
-                            //fontSize = 50.sp,
-                            fontSize = dpToSp(50.dp),
+//                            text = " Minä ečin...",
+//                            text = "Введите запрос  ",
+                            text = "Введите запрос...",
+                            fontSize = 35.sp,
+//                            fontSize = dpToSp(50.dp),
                             modifier = Modifier.fillMaxWidth(),
                             style = LocalTextStyle.current.copy(textAlign = TextAlign.Center),
 //                            style = MaterialTheme.typography.titleMedium.copy(textAlign = TextAlign.Center),
 //                            color = Color(0xFF848484)
-                            color = Color(0xFF848484)
+//                            color = Color(0xFF848484)
+                            color = Color.LightGray
                         )
                     }
                 },
@@ -167,7 +173,11 @@ fun SearchScreen(prefs: SharedPreferences) {
                     fontFamily = Montserrat,
                     fontWeight = FontWeight.Normal,
                     textAlign = TextAlign.Center,
-                    color = Color.Black),
+//                    color = Color.Black),
+//                    color = Color(0xFF848484)),
+//                    color = Color.DarkGray
+                    color = if (isSystemInDarkTheme()) Color.White else Color.Black
+                ),
                 singleLine = true,
                 colors = TextFieldDefaults.outlinedTextFieldColors(
                     focusedBorderColor = Color.Transparent,
@@ -183,6 +193,7 @@ fun SearchScreen(prefs: SharedPreferences) {
                         listLemmas.clear()
                         searchThread.start()
                         showSheet = true
+                        focusManager.clearFocus()
                     }
                 ),
 //                trailingIcon = {
@@ -212,14 +223,16 @@ fun SearchScreen(prefs: SharedPreferences) {
         IconButton(
             modifier = Modifier
                 .size(48.dp)
-                .offset(x=10.dp, y=height/2-65.dp),
-            onClick = { input_value = "" }
+                .offset(x=width-55.dp, y=height/2-65.dp),
+            onClick = { inputValue = "" }
         ) {
             Icon(
                 Icons.Filled.Clear,
                 "Clear",
                 modifier = Modifier.size(48.dp).padding(top = 10.dp),
                 tint = Color(0xFF848484)
+//                tint = Color.Black
+//                tint = Color.DarkGray
             )
         }
 
@@ -231,8 +244,7 @@ fun SearchScreen(prefs: SharedPreferences) {
             DropdownMenu(
                 expanded = arrDrop,
                 offset = DpOffset(x = (width/2-x/2), y = (-height/2-y/2)),
-                onDismissRequest = {
-                    arrDrop = false},
+                onDismissRequest = { arrDrop = false},
                 modifier = Modifier
                     .background(color = Color.Transparent)
                     .padding(10.dp)
@@ -246,10 +258,10 @@ fun SearchScreen(prefs: SharedPreferences) {
                     Column(){
                         Text(
                             text = """    
-                            Словарь Вепсcкого и Карельского языков
-                            Версия 0.8
+                            Словарь Вепского и Карельского языков
+                            Версия 1.0
                             В приложении используется база данных проекта 
-                            "Открытый корпус Вепсского и Карельского языков (ВепКар)"
+                            "Открытый корпус вепсского и карельского языков (ВепКар)"
                             Доступен по адресу: dictorpus.krc.karelia.ru
                             """.trimIndent(),
                             //fontSize = 50.sp,

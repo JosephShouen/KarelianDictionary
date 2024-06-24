@@ -8,18 +8,18 @@ import com.example.sqldelight.hockey.data.PlayerQueries
 import com.example.sqldelight.hockey.data.SelectTest
 
 
-fun getLemmaInfo(driver: SqlDriver, input_value: String,
+fun getLemmaInfo(driver: SqlDriver, inputValue: String,
                  chosenLang: List<Long>, listLemmas: SnapshotStateList<LemmaInfo>){
     Log.d("TestLaunch", "getLemmaInfo")
     val database = Database(driver)
     val playerQueries: PlayerQueries = database.playerQueries
 
-    val rusCheck = Regex("[\\u0400-\\u04FF]").containsMatchIn(input_value)
+    val rusCheck = Regex("[\\u0400-\\u04FF]").containsMatchIn(inputValue)
     if (rusCheck) {
-        val listMeaningLang = playerQueries.selectRusMeaning(meaning = input_value).executeAsList()
+        val listMeaningLang = playerQueries.selectRusMeaning(meaning = inputValue).executeAsList()
         Log.d("Meaning", listMeaningLang.toString())
         if (listMeaningLang.isNullOrEmpty()){
-            val emptyLemma = LemmaInfo("Empty", "", "", mutableListOf(wordform_gramset("", "", 0, 0, 0, 0, 0)))
+            val emptyLemma = LemmaInfo("Empty", "", "", mutableListOf(WordformGramset("", "", 0, 0, 0, 0, 0)))
             listLemmas.add(emptyLemma)
         } else {
             val lemmasId = playerQueries.selectLemmaMeaning(listMeaningLang).executeAsList()
@@ -27,9 +27,9 @@ fun getLemmaInfo(driver: SqlDriver, input_value: String,
             searching(playerQueries, lemmasId, listLemmas)
         }
     } else {
-        val wordform = playerQueries.selectWordforms(input_value).executeAsList()
+        val wordform = playerQueries.selectWordforms(inputValue).executeAsList()
         if (wordform.isNullOrEmpty()){
-            val emptyLemma = LemmaInfo("Empty", "", "", mutableListOf(wordform_gramset("", "", 0, 0, 0, 0, 0)))
+            val emptyLemma = LemmaInfo("Empty", "", "", mutableListOf(WordformGramset("", "", 0, 0, 0, 0, 0)))
             listLemmas.add(emptyLemma)
         } else {
             val lemmasId = playerQueries.selectLemmaId(wordform[0], chosenLang).executeAsList()
@@ -53,15 +53,15 @@ fun searching(playerQueries: PlayerQueries, lemma: List<Long>, listLemmas: Snaps
 
     for (lemma in groupingLemma) {
         Log.d("TestLemmas", lemma.toString())
-        val caseInfo = mutableListOf<wordform_gramset>()
-        val tenseInfo = mutableListOf<wordform_gramset>()
+        val caseInfo = mutableListOf<WordformGramset>()
+        val tenseInfo = mutableListOf<WordformGramset>()
         for (info in lemma.value) {
             if (info.gram_id_case != null && info.gram_id_number != null &&info.name_ru_ != null){
                 val number = if (info.gram_id_number.toString() == "1") "ед.ч." else "мн.ч."
-                caseInfo.add(wordform_gramset(info.wordform, number + " " + info.name_ru_.replace("&shy;", ""), info.gram_id_number, info.gram_id_case, info.gram_id_tense, info.gram_id_mood, info.gram_id_person))
+                caseInfo.add(WordformGramset(info.wordform, number + " " + info.name_ru_.replace("&shy;", ""), info.gram_id_number, info.gram_id_case, info.gram_id_tense, info.gram_id_mood, info.gram_id_person))
             } else if (info.gram_id_tense != null && info.gram_id_number != null && info.gram_id_person != null && info.gram_id_mood != null) {
                 val number = if (info.gram_id_number.toString() == "1") "ед.ч." else "мн.ч."
-                tenseInfo.add(wordform_gramset(info.wordform, "${info.tense_name} ${info.mood_name} $number ${info.person_name}", info.gram_id_number, info.gram_id_case, info.gram_id_tense, info.gram_id_mood, info.gram_id_person))
+                tenseInfo.add(WordformGramset(info.wordform, "${info.tense_name} ${info.mood_name} $number ${info.person_name}", info.gram_id_number, info.gram_id_case, info.gram_id_tense, info.gram_id_mood, info.gram_id_person))
             }
         }
         val meaning = meaningId[lemma.key]

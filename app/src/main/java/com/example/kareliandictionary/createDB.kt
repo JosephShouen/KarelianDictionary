@@ -1,12 +1,11 @@
 package com.example.kareliandictionary
 
 import android.content.Context
-import android.content.SharedPreferences
 import java.io.FileOutputStream
 import java.io.InputStream
 import android.util.Log
 
-fun CreateDB(context: Context) {
+fun createDB(context: Context) {
     Log.d("CreateDB", "CreatedbStarted")
     val databasePath = context.getDatabasePath("tiny_big_vepkar.db")
     databasePath.delete()
